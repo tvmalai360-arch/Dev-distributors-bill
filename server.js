@@ -1,0 +1,18 @@
+const express = require('express');
+const path = require('path');
+const Database = require('better-sqlite3');
+const app = express();
+const PORT = process.env.PORT || 3000;
+const db = new Database(process.env.DB_PATH || path.join(__dirname, 'dev-billing.sqlite'));
+db.pragma('journal_mode = WAL');
+db.exec(`CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, invoice_no TEXT, customer_name TEXT, grand_total TEXT, saved_at TEXT, payload TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS dealers (id TEXT PRIMARY KEY, name TEXT, mobile TEXT, updated_at TEXT, payload TEXT NOT NULL);`);
+app.use(express.json({limit:'3mb'}));
+app.use(express.static(path.join(__dirname,'public')));
+app.get('/api/health', (req,res)=>res.json({ok:true,service:'DEV DISTRIBUTORS Billing API'}));
+app.get('/api/invoices',(req,res)=>{const rows=db.prepare('SELECT id, invoice_no AS invoiceNo, customer_name AS customerName, grand_total AS grandTotal, saved_at AS savedAt, payload FROM invoices ORDER BY id DESC').all();res.json(rows.map(r=>({...JSON.parse(r.payload),id:r.id,invoiceNo:r.invoiceNo,customerName:r.customerName,grandTotal:r.grandTotal,savedAt:r.savedAt})));});
+app.post('/api/invoices',(req,res)=>{const d=req.body||{};const info=db.prepare('INSERT INTO invoices(invoice_no,customer_name,grand_total,saved_at,payload) VALUES(?,?,?,?,?)').run(String(d.invoiceNo||''),String(d.customerName||''),String(d.grandTotal||''),String(d.savedAt||new Date().toISOString()),JSON.stringify(d));res.status(201).json({ok:true,id:info.lastInsertRowid});});
+app.get('/api/dealers',(req,res)=>res.json(db.prepare('SELECT payload FROM dealers ORDER BY name COLLATE NOCASE').all().map(x=>JSON.parse(x.payload))));
+app.post('/api/dealers',(req,res)=>{const d=req.body||{};if(!d.id||!d.name)return res.status(400).json({error:'Dealer id and name are required'});db.prepare('INSERT INTO dealers(id,name,mobile,updated_at,payload) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,mobile=excluded.mobile,updated_at=excluded.updated_at,payload=excluded.payload').run(String(d.id),String(d.name),String(d.mobile||''),String(d.updatedAt||new Date().toISOString()),JSON.stringify(d));res.json({ok:true});});
+app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
+app.listen(PORT,()=>console.log(`DEV DISTRIBUTORS Billing running at http://localhost:${PORT}`));

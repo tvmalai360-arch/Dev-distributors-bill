@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEV DISTRIBUTORS Billing</title>
+<meta name="theme-color" content="#123a72">
+<meta name="description" content="DEV DISTRIBUTORS mobile GST billing app">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon.svg">
+<style>
+  :root { font-family: Arial, sans-serif; color: #1f2937; }
+  body { margin: 0; background: #f3f4f6; }
+  .wrap { max-width: 1000px; margin: 20px auto; padding: 16px; }
+  h1 { margin: 0 0 14px; font-size: 24px; }
+  .panel, .invoice { background: white; border: 1px solid #d1d5db; border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+  input, textarea, select { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+  textarea { min-height: 62px; resize: vertical; }
+  button { border: 0; border-radius: 6px; padding: 10px 14px; margin: 8px 6px 0 0; cursor: pointer; font-weight: 700; background: #1d4ed8; color: white; }
+  button.secondary { background: #475569; }
+  button.remove { background: #b91c1c; padding: 7px 10px; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+  th { background: #f1f5f9; }
+  td input { min-width: 72px; padding: 7px; }
+  .invoice-head { display:flex; justify-content:space-between; gap:18px; border-bottom:2px solid #111827; padding-bottom:12px; }
+  .invoice-head h2 { margin:0 0 7px; }
+  .muted { color:#64748b; font-size:13px; }
+  .totals { max-width: 360px; margin: 14px 0 0 auto; }
+  .totals div { display:flex; justify-content:space-between; padding:5px 0; }
+  .grand { font-size:18px; font-weight:800; border-top:2px solid #111827; margin-top:5px; padding-top:9px !important; }
+  .foot { margin-top:30px; display:flex; justify-content:space-between; gap:20px; }
+  .right { text-align:right; }
+
+
+  .section-title { margin-top:20px; padding-bottom:6px; border-bottom:1px solid #cbd5e1; }
+  .permission-bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; margin:10px 0; }
+  .permission-bar .muted { flex:1 1 240px; }
+  .dealer-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:end; margin:10px 0; }
+  .dealer-tools > div { flex:1 1 220px; }
+  .dealer-card { border:1px solid #cbd5e1; border-radius:8px; padding:10px; margin:8px 0; }
+  .dealer-card button { margin-top:8px; }
+  .dealer-status { margin:8px 0; min-height:18px; }
+  .print-choice {display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:9px 10px;margin:8px 0;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px}
+  .print-choice label {display:flex;align-items:center;gap:6px;margin:0;font-weight:700}
+  .print-choice input {width:15px;height:15px;margin:0}
+  .print-options {display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:12px 0;padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px}
+  .print-check-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+  .print-choice {display:flex;align-items:center;gap:7px;margin:0;padding:7px 8px;background:#fff;border:1px solid #dbeafe;border-radius:5px;font-size:12px;font-weight:600}
+  .print-choice input {width:15px;height:15px;flex:0 0 auto}
+  @media (max-width:700px) {.print-check-grid {grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media print {.print-options {display:none!important}}
+  .print-hidden {display:none!important}
+  .bank-line {display:grid;grid-template-columns:145px minmax(0,1fr);gap:8px;padding:3px 0;border-bottom:1px solid #e5e7eb;color:#334155}
+  .bank-line strong {color:#1f2937}
+  @media (max-width:600px) { .grid { grid-template-columns:1fr; } .invoice-head { flex-direction:column; } .wrap { padding:9px; } .panel,.invoice { padding:12px; } }
+  @media print {
+    body { background:white; }
+    .wrap { margin:0; max-width:none; padding:0; }
+    .panel, .no-print, h1 { display:none !important; }
+    .invoice { border:0; border-radius:0; padding:0; margin:0; }
+    input, textarea { border:0; padding:0; }
+    .remove { display:none; }
+    @page { size: A4; margin: 12mm; }
+  }
+
+  :root { --brand:#123a72; --brand2:#2563eb; --ink:#172033; --surface:#fff; }
+  body { background:#eef2f8; color:var(--ink); }
+  .wrap { max-width:1180px; margin:16px auto; }
+  h1.no-print { color:var(--brand); letter-spacing:-.5px; padding:14px 16px; background:linear-gradient(120deg,#fff,#e7efff); border:1px solid #dbe5f4; border-radius:14px; }
+  .panel,.invoice { border:1px solid #dbe3ef; border-radius:14px; box-shadow:0 8px 26px rgba(15,35,70,.06); }
+  .panel h2 { color:var(--brand); }
+  button { background:var(--brand2); border-radius:9px; padding:11px 15px; box-shadow:0 2px 4px rgba(20,50,90,.12); }
+  button.secondary { background:#e8eef8; color:#203b63; border:1px solid #cdd9eb; }
+  input,textarea,select { border-color:#cbd6e5; border-radius:8px; min-height:42px; }
+  input:focus,textarea:focus,select:focus { outline:2px solid #93c5fd; border-color:#2563eb; }
+  .invoice-head { border-color:var(--brand); }
+  #invoiceLogo { display:none; max-width:105px; max-height:78px; object-fit:contain; margin-bottom:8px; }
+  .brand-upload { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:12px; background:#f8fbff; border:1px dashed #9fb6d8; border-radius:10px; margin:10px 0 16px; }
+  .brand-upload input { flex:1; min-width:180px; }
+  .app-topline { font-size:12px; color:#64748b; margin:0 0 10px; }
+  @media (max-width:600px) { .wrap { margin:0 auto; padding:8px; } h1.no-print { font-size:21px; padding:13px; } .panel,.invoice { padding:12px; border-radius:12px; } button { margin:6px 4px 0 0; } th,td { padding:6px; font-size:12px; } td input { min-width:68px; } .invoice-head { gap:10px; } .foot { gap:12px; } }
+  @media (display-mode: standalone) { body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); } }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="no-print">DEV DISTRIBUTORS <span style="font-size:14px;font-weight:500;color:#64748b">· Mobile Billing</span></h1>
+  <p class="app-topline no-print">GST invoice · Dealer records · Invoice history · A4 / PDF printing</p>
+  <section class="panel no-print">
+    <h2>Business Details</h2>
+    <div class="brand-upload"><div><strong>Business Logo</strong><div class="muted">PNG, JPG, or WebP · shown on invoice</div></div><input id="logoUpload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><button type="button" class="secondary" id="removeLogoBtn">Remove Logo</button><span id="logoStatus" class="muted">No logo selected</span></div>
+    <div class="grid">
+      <div><label for="bizName">Business Name</label><input id="bizName" value="DEV DISTRIBUTORS" placeholder="Your business name"></div>
+      <div><label for="bizGstin">Business GSTIN</label><input id="bizGstin" placeholder="GSTIN"></div>
+      <div style="grid-column:1/-1"><label for="bizAddress">Business Address</label><textarea id="bizAddress" placeholder="Full business address"></textarea></div>
+      <div><label for="invoiceNo">Invoice Number</label><input id="invoiceNo" placeholder="INV-001"></div>
+      <div><label for="invoiceDate">Invoice Date</label><input id="invoiceDate" type="date"></div>
+      <div><label for="ewayBillNo">e-Way Bill No.</label><input id="ewayBillNo" placeholder="e-Way Bill number"></div>
+      <div><label for="buyerOrderNo">Buyer’s Order No.</label><input id="buyerOrderNo" placeholder="Buyer order number"></div>
+      <div><label for="deliveryNote">Delivery Note</label><input id="deliveryNote" placeholder="Delivery note"></div>
+      <div><label for="paymentTerms">Mode / Terms of Payment</label><input id="paymentTerms" value="2 Days"></div>
+      <div><label for="dispatchDocNo">Dispatch Doc No.</label><input id="dispatchDocNo" placeholder="Dispatch document number"></div>
+      <div><label for="dispatchedThrough">Dispatched Through</label><input id="dispatchedThrough" placeholder="Transporter / mode"></div>
+      <div><label for="lrNo">Bill of Lading / LR-RR No.</label><input id="lrNo" placeholder="LR / RR number"></div>
+      <div><label for="vehicleNo">Motor Vehicle No.</label><input id="vehicleNo" placeholder="Vehicle number"></div>
+      <div><label for="destination">Destination</label><input id="destination" placeholder="Destination"></div>
+      <div><label for="termsDelivery">Terms of Delivery</label><input id="termsDelivery" placeholder="Terms of delivery"></div>
+      <div><label for="salesMan">Sales Man</label><input id="salesMan" placeholder="Sales person name"></div>
+      <div><label for="previousBalance">Previous Balance (₹)</label><input id="previousBalance" type="number" step="0.01" value="0"></div>
+      <div><label for="roundingOff">Rounding Off (₹)</label><input id="roundingOff" type="number" step="0.01" value="0"></div>
+      <div><label for="pdcNote">Payment / Cheque Note</label><input id="pdcNote" value="*PDC NOT INCLUDED — CHEQUES SUBJECT TO REALIZATION"></div>
+    </div>
+    <h2 style="margin-top:20px">Customer Details</h2>
+    <div class="grid">
+      <div><label for="customerName">Customer Name</label><input id="customerName" placeholder="Customer name"></div>
+      <div><label for="customerAddress">Customer Address</label><textarea id="customerAddress" placeholder="Customer address"></textarea></div>
+    </div>
+
+    <div class="permission-bar" aria-label="Dealer and customer print controls">
+      <strong>Dealer / Customer Print:</strong>
+      <label><input type="checkbox" data-print-option="dealer"> Print Dealer Details</label>
+      <label><input type="checkbox" data-print-option="customer"> Print Customer Details</label>
+      <span class="muted">இங்கே தேர்வு செய்தாலும் கீழே உள்ள Print Options-உடன் இணைந்து செயல்படும்.</span>
+    </div>
+
+    <div class="print-options" aria-label="Invoice print options">
+      <div style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <strong style="font-size:18px">Print Options — A4 Print</strong>
+        <span class="muted">டிக் செய்த விவரங்கள் மட்டும் Print ஆகும்</span>
+      </div>
+      <div class="print-check-grid">
+        <label class="print-choice"><input type="checkbox" data-print-option="invoiceNumber"> Invoice Number</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="invoiceDate"> Invoice Date</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="previousBill"> Previous Bill Details</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="salesman"> Salesman Name</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="vehicle"> Vehicle Number</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="eway"> E-Way Bill Number</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="dispatch"> Dispatch Details</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="company"> Company / Distributor Details</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="gstNumber"> GST Number</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="companyAddress"> Company Address</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="bank"> Bank Details</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="dealer"> Dealer Details</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="customer"> Customer Details</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="products"> Products &amp; Quantity</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="gst"> GST / CGST / SGST</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="totals"> Total Amount &amp; Balance</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="terms"> Terms &amp; Conditions</label>
+        <label class="print-choice"><input type="checkbox" data-print-option="signature"> Signature / Seal</label>
+      </div>
+      <div style="width:100%;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="secondary" onclick="setAllPrintOptions(true)">Select All</button>
+        <button type="button" class="secondary" onclick="setAllPrintOptions(false)">Clear All</button>
+      </div>
+    </div>
+
+    <h2 class="section-title">Dispatch / e-Way Bill Details</h2>
+    <div class="grid">
+      <div><label for="supplyType">Supply Type</label><input id="supplyType" value="Outward-Supply"></div>
+      <div><label for="transactionType">Transaction Type</label><input id="transactionType" value="Bill From - Dispatch From"></div>
+      <div><label for="dispatchFrom">Dispatch From Address</label><textarea id="dispatchFrom" placeholder="Dispatch-from address"></textarea></div>
+      <div><label for="shipTo">Ship To Address</label><textarea id="shipTo" placeholder="Ship-to address"></textarea></div>
+      <div><label for="approxDistance">Approx. Distance (KM)</label><input id="approxDistance" type="number" min="0" placeholder="Distance"></div>
+      <div><label for="transporterName">Transporter Name</label><input id="transporterName" placeholder="Transporter name"></div>
+    </div>
+    <h2 class="section-title">Company Bank Details</h2>
+    <div class="grid">
+      <div><label for="bankAccountHolder">A/c Holder’s Name</label><input id="bankAccountHolder" placeholder="Account holder name"></div>
+      <div><label for="bankName">Bank Name</label><input id="bankName" placeholder="Bank name"></div>
+      <div><label for="bankAccountNo">A/c No.</label><input id="bankAccountNo" placeholder="Account number"></div>
+      <div><label for="bankBranchIfsc">Branch & IFSC Code</label><input id="bankBranchIfsc" placeholder="Branch and IFSC"></div>
+      <div><label for="bankSwift">SWIFT Code</label><input id="bankSwift" placeholder="SWIFT code"></div>
+      <div><label for="companyPan">Company PAN</label><input id="companyPan" placeholder="Company PAN"></div>
+    </div>
+
+    <h2 style="margin-top:20px">Dealer Account Details</h2>
+    <div class="permission-bar">
+      <button type="button" class="secondary" onclick="manageDealerPermission()">Dealer Account Permission</button>
+      <button type="button" class="secondary" onclick="lockDealerEditing()">Lock Add / Edit</button>
+      <span id="dealerPermissionStatus" class="muted">Dealer add/edit is locked until permission is granted.</span>
+    </div>
+    <div class="grid">
+      <div><label for="dealerName">Dealer Name</label><input id="dealerName" placeholder="Dealer name"></div>
+      <div><label for="dealerMobile">Mobile Number</label><input id="dealerMobile" type="tel" placeholder="Mobile number"></div>
+      <div style="grid-column:1/-1"><label for="dealerAddress">Address</label><textarea id="dealerAddress" placeholder="Dealer address"></textarea></div>
+      <div><label for="dealerGstin">GSTIN</label><input id="dealerGstin" placeholder="Dealer GSTIN"></div>
+      <div><label for="dealerOpeningBalance">Opening Balance (₹)</label><input id="dealerOpeningBalance" type="number" min="0" step="0.01" value="0"></div>
+      <div><label for="dealerPendingBalance">Credit / Pending Balance (₹)</label><input id="dealerPendingBalance" type="number" step="0.01" value="0"></div>
+    </div>
+    <div class="dealer-tools">
+      <div><label for="dealerSearch">Search Dealer</label><input id="dealerSearch" placeholder="Search by name, mobile, GSTIN" oninput="searchDealers()"></div>
+      <div><label for="dealerSelect">Saved Dealers</label><select id="dealerSelect" onchange="selectDealerFromList()"><option value="">-- Select dealer --</option></select></div>
+    </div>
+    <button type="button" onclick="saveDealerDetails()">Save Dealer Details</button>
+    <button type="button" class="secondary" onclick="editDealerDetails()">Edit Dealer Details</button>
+    <button type="button" class="secondary" onclick="clearDealerForm()">New / Clear</button>
+    <button type="button" class="secondary" onclick="showDealerBillingHistory()">Dealer-wise Billing History</button>
+    <p id="dealerStatus" class="muted dealer-status" aria-live="polite">Dealer details are saved in this browser.</p>
+    <div id="dealerSearchResults"></div>
+    <div id="dealerBillingHistory" hidden class="dealer-card">
+      <h3 id="dealerHistoryTitle">Dealer-wise Billing History</h3>
+      <div id="dealerHistoryList"></div>
+    </div>
+    <h2 style="margin-top:20px">Products</h2>
+    <div class="table-scroll">
+      <table id="entryTable">
+        <thead><tr><th>Product Name</th><th>Qty</th><th>Rate (before GST)</th><th>GST %</th><th>Action</th></tr></thead>
+        <tbody id="entryRows"></tbody>
+      </table>
+    </div>
+    <button type="button" onclick="addRow()">+ Add Product</button>
+    <button type="button" class="secondary" onclick="updateInvoice()">Update Invoice Preview</button>
+    <button type="button" onclick="window.print()">Print / Save as PDF</button>
+    <button type="button" class="secondary" onclick="saveDetails()">Save Details on This Browser</button>
+    <button type="button" class="secondary" onclick="saveInvoiceToHistory()">Save Invoice to History</button>
+    <button type="button" class="secondary" onclick="showInvoiceHistory()">View Saved Invoices</button>
+    <p id="autosaveStatus" class="muted" aria-live="polite">Auto-save ready — data stays on this device.</p>
+    <div id="historyPanel" hidden style="margin-top:12px">
+      <h3>Saved Invoices</h3>
+      <div id="historyList"></div>
+    </div>
+    <p class="muted">Rates should be entered before GST. This demo calculates CGST and SGST equally and is intended for testing, not as verified tax-compliance software.</p>
+  </section>
+
+  <section class="invoice" id="invoice">
+    <div class="invoice-head">
+      <div id="outCompanyBlock"><img id="invoiceLogo" alt="Business logo"><h2 id="outBizName">YOUR BUSINESS NAME</h2><div id="outBizAddress">Business address</div><div id="outGstinLine"><strong>GSTIN:</strong> <span id="outBizGstin">—</span></div></div>
+      <div><h2>INVOICE</h2><div id="outInvoiceNoLine"><strong>Invoice No:</strong> <span id="outInvoiceNo">—</span></div><div id="outInvoiceDateLine"><strong>Date:</strong> <span id="outInvoiceDate">—</span></div></div>
+    </div>
+    <div id="outDealerBlock" style="margin:12px 0;padding:8px;border:1px solid #cbd5e1">
+      <strong>Dealer Details</strong>
+      <div id="outDealerName">—</div>
+      <div id="outDealerAddress" style="white-space:pre-line">—</div>
+      <div><strong>Mobile:</strong> <span id="outDealerMobile">—</span></div>
+      <div><strong>GSTIN:</strong> <span id="outDealerGstin">—</span></div>
+    </div>
+    <div id="outCustomerBlock" style="margin:12px 0;padding:8px;border:1px solid #cbd5e1">
+      <strong>Customer Details</strong>
+      <div id="outCustomerName">Customer name</div>
+      <div id="outCustomerAddress" style="white-space:pre-line">Customer address</div>
+    </div>
+    <div id="outDispatchBlock" class="muted" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin-bottom:10px">
+      <div id="outEwayLine"><strong>e-Way Bill No:</strong> <span id="outEwayBillNo">—</span></div>
+      <div id="outBuyerOrderLine"><strong>Buyer’s Order No:</strong> <span id="outBuyerOrderNo">—</span></div>
+      <div id="outPaymentTermsLine"><strong>Payment Terms:</strong> <span id="outPaymentTerms">—</span></div>
+      <div id="outVehicleLine"><strong>Vehicle No:</strong> <span id="outVehicleNo">—</span></div>
+      <div id="outDestinationLine"><strong>Destination:</strong> <span id="outDestination">—</span></div>
+      <div id="outSalesmanLine"><strong>Sales Man:</strong> <span id="outSalesMan">—</span></div>
+    </div>
+    <div class="table-scroll" id="outProductsBlock">
+      <table id="outProductsTable">
+        <thead><tr><th>#</th><th>Product Description</th><th>Qty</th><th>Rate</th><th>Taxable Amount</th><th class="gst-column">CGST</th><th class="gst-column">SGST</th><th>Total</th></tr></thead>
+        <tbody id="outRows"><tr><td colspan="8">Add products to create your invoice.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="totals" id="outTotalsBlock">
+      <div><span>Taxable Subtotal</span><strong id="outSubtotal">₹0.00</strong></div>
+      <div class="gst-total-line"><span>Total CGST</span><strong id="outCgst">₹0.00</strong></div>
+      <div class="gst-total-line"><span>Total SGST</span><strong id="outSgst">₹0.00</strong></div>
+      <div class="grand"><span>Grand Total</span><strong id="outGrand">₹0.00</strong></div>
+    </div>
+    <div id="outAmountWords" style="margin-top:18px"><strong>Amount in Words:</strong> <span id="outWords">Zero rupees only</span></div>
+    <div id="outBalanceBlock" style="margin-top:16px;border-top:1px solid #cbd5e1;padding-top:8px">
+      <div id="outPreviousBalanceLine"><strong>Previous Balance:</strong> <span id="outPreviousBalance">₹0.00</span></div>
+      <div id="outBillAmountLine"><strong>Bill Amount:</strong> <span id="outBillAmount">₹0.00</span></div>
+      <div id="outNetBalanceLine"><strong>Net Balance:</strong> <span id="outNetBalance">₹0.00</span></div>
+      <div class="muted" id="outPdcNote"></div>
+      <div id="outBankTitle" style="margin-top:8px"><strong>Company Bank Details</strong></div>
+      <div id="outBankDetails" class="muted"></div>
+    </div>
+    <div class="foot"><div id="outTermsBlock"><strong>Terms &amp; Conditions / Notes</strong><div class="muted" id="outTermsText">Thank you for your business.</div></div><div class="right" id="outSignatureBlock"><strong>For <span id="outSignName">Your Business</span></strong><br><br><br>Authorized Signature / Seal</div></div>
+  </section>
+</div>
+<script>
+const money = n => '₹' + Number(n || 0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+function addRow(name='', qty=1, rate='', gst=18) {
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><input aria-label="Product name" value="${esc(name)}" placeholder="Product name"></td>
+  <td><input aria-label="Quantity" type="number" min="0" step="any" value="${qty}"></td>
+  <td><input aria-label="Rate before GST" type="number" min="0" step="any" value="${rate}" placeholder="0.00"></td>
+  <td><select aria-label="GST rate">${[0,5,12,18,28].map(x=>`<option value="${x}" ${Number(gst)===x?'selected':''}>${x}%</option>`).join('')}</select></td>
+  <td><button class="remove" type="button" onclick="this.closest('tr').remove();updateInvoice()">Remove</button></td>`;
+  document.getElementById('entryRows').appendChild(tr);
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function val(id){return document.getElementById(id).value.trim();}
+function updateInvoice(){
+  document.getElementById('outBizName').textContent=val('bizName')||'YOUR BUSINESS NAME';
+  document.getElementById('outBizAddress').textContent=val('bizAddress')||'Business address';
+  document.getElementById('outBizGstin').textContent=val('bizGstin')||'—';
+  document.getElementById('outInvoiceNo').textContent=val('invoiceNo')||'—';
+  document.getElementById('outInvoiceDate').textContent=val('invoiceDate')||'—';
+  document.getElementById('outCustomerName').textContent=val('customerName')||'Customer name';
+  document.getElementById('outCustomerAddress').textContent=val('customerAddress')||'Customer address';
+  document.getElementById('outDealerName').textContent=val('dealerName')||'—';
+  document.getElementById('outDealerAddress').textContent=val('dealerAddress')||'—';
+  document.getElementById('outDealerMobile').textContent=val('dealerMobile')||'—';
+  document.getElementById('outDealerGstin').textContent=val('dealerGstin')||'—';
+  document.getElementById('outSignName').textContent=val('bizName')||'Your Business';
+  const outputPairs={outEwayBillNo:'ewayBillNo',outBuyerOrderNo:'buyerOrderNo',outPaymentTerms:'paymentTerms',outVehicleNo:'vehicleNo',outDestination:'destination',outSalesMan:'salesMan'};
+  Object.entries(outputPairs).forEach(([out,id])=>{const el=document.getElementById(out);if(el)el.textContent=val(id)||'—';});
+  const prev=Number(val('previousBalance'))||0;
+  const rounding=Number(val('roundingOff'))||0;
+  document.getElementById('outPreviousBalance').textContent=money(prev);
+  document.getElementById('outPdcNote').textContent=val('pdcNote');
+  const bankFields=[
+    ['A/c Holder Name',val('bankAccountHolder')],
+    ['Bank Name',val('bankName')],
+    ['Account Number',val('bankAccountNo')],
+    ['Branch & IFSC Code',val('bankBranchIfsc')],
+    ['SWIFT Code',val('bankSwift')],
+    ['Company PAN',val('companyPan')]
+  ].filter(pair=>pair[1]);
+  document.getElementById('outBankDetails').innerHTML=bankFields.map(([label,value])=>
+    `<div class="bank-line"><strong>${esc(label)}</strong><span>${esc(value)}</span></div>`
+  ).join('');
+  let subtotal=0,cgst=0,sgst=0, rows='';
+  [...document.querySelectorAll('#entryRows tr')].forEach((tr,i)=>{
+    const inputs=tr.querySelectorAll('input'), gst=Number(tr.querySelector('select').value);
+    const name=inputs[0].value.trim(), qty=Math.max(0,Number(inputs[1].value)||0), rate=Math.max(0,Number(inputs[2].value)||0);
+    const taxable=qty*rate, tax=taxable*gst/100, c=tax/2, s=tax/2, total=taxable+tax;
+    subtotal+=taxable;cgst+=c;sgst+=s;
+    rows+=`<tr><td>${i+1}</td><td>${esc(name||'—')}</td><td>${qty}</td><td>${money(rate)}</td><td>${money(taxable)}</td><td>${money(c)}</td><td>${money(s)}</td><td>${money(total)}</td></tr>`;
+  });
+  document.getElementById('outRows').innerHTML=rows||'<tr><td colspan="8">Add products to create your invoice.</td></tr>';
+  document.getElementById('outSubtotal').textContent=money(subtotal);
+  document.getElementById('outCgst').textContent=money(cgst);
+  document.getElementById('outSgst').textContent=money(sgst);
+  const billTotal=subtotal+cgst+sgst+rounding;
+  document.getElementById('outGrand').textContent=money(billTotal);
+  document.getElementById('outBillAmount').textContent=money(billTotal);
+  document.getElementById('outNetBalance').textContent=money(prev+billTotal);
+  document.getElementById('outWords').textContent=numberWords(Math.round(billTotal))+' rupees only';
+}
+function numberWords(n){
+ const a=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'], b=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+ function under(x){if(x<20)return a[x];if(x<100)return b[Math.floor(x/10)]+(x%10?' '+a[x%10]:'');return a[Math.floor(x/100)]+' hundred'+(x%100?' '+under(x%100):'');}
+ if(n===0)return 'Zero'; if(n>99999999)return String(n);
+ let parts=[];const units=[[10000000,'crore'],[100000,'lakh'],[1000,'thousand'],[1,'']];
+ for(const [v,label] of units){if(n>=v){let q=Math.floor(n/v);n%=v;parts.push((v===1?under(q):under(q))+(label?' '+label:''));}}
+ return parts.join(' ').replace(/^./,c=>c.toUpperCase());
+}
+const DB_NAME='DevDistributorsBillingDB', DB_VERSION=1, STORE='invoices';
+let billingDB=null, saveTimer=null;
+function openBillingDB(){
+  return new Promise((resolve,reject)=>{
+    if(!('indexedDB' in window)){resolve(null);return;}
+    const req=indexedDB.open(DB_NAME,DB_VERSION);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});};
+    req.onsuccess=()=>{billingDB=req.result;resolve(billingDB);};
+    req.onerror=()=>reject(req.error);
+  });
+}
+function collectData(){
+  const data={};
+  ['bizName','bizAddress','bizGstin','invoiceNo','invoiceDate','customerName','customerAddress',
+   'ewayBillNo','buyerOrderNo','deliveryNote','paymentTerms','dispatchDocNo','dispatchedThrough','lrNo',
+   'vehicleNo','destination','termsDelivery','salesMan','previousBalance','roundingOff','pdcNote',
+   'supplyType','transactionType','dispatchFrom','shipTo','approxDistance','transporterName',
+   'bankAccountHolder','bankName','bankAccountNo','bankBranchIfsc','bankSwift','companyPan'].forEach(id=>data[id]=val(id));
+  data.products=[...document.querySelectorAll('#entryRows tr')].map(tr=>{
+    const i=tr.querySelectorAll('input');
+    return {name:i[0].value,qty:i[1].value,rate:i[2].value,gst:tr.querySelector('select').value};
+  });
+  return data;
+}
+function applyData(d){
+  if(!d)return;
+  Object.keys(d).filter(k=>k!=='products').forEach(k=>{if(document.getElementById(k))document.getElementById(k).value=d[k]||''});
+  if(d.products){
+    document.getElementById('entryRows').innerHTML='';
+    d.products.forEach(p=>addRow(p.name,p.qty,p.rate,p.gst));
+  }
+  updateInvoice();
+}
+function setAutoSaveStatus(message){
+  const el=document.getElementById('autosaveStatus'); if(el)el.textContent=message;
+}
+function autoSaveDraft(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    try{
+      localStorage.setItem('devDistributorsDraft',JSON.stringify(collectData()));
+      setAutoSaveStatus('✓ Automatically saved on this device');
+    }catch(e){setAutoSaveStatus('Auto-save failed. Please check device storage.');}
+  },250);
+}
+function saveDetails(){
+  autoSaveDraft();
+  setAutoSaveStatus('✓ Details saved on this device');
+}
+async function saveInvoiceToHistory(){
+  updateInvoice();
+  const data=collectData();
+  const selectedDealerId=val('dealerSelect');
+  const selectedDealer=getDealerById(selectedDealerId);
+  data.dealerId=selectedDealer ? selectedDealer.id : '';
+  data.dealerName=selectedDealer ? selectedDealer.name : '';
+  data.savedAt=new Date().toISOString();
+  data.grandTotal=document.getElementById('outGrand').textContent;
+  data.netBalance=(Number(val('previousBalance'))||0)+(Number(document.getElementById('outGrand').textContent.replace(/[₹,]/g,''))||0);
+  if(!data.invoiceNo)data.invoiceNo='INV-'+Date.now();
+  try{
+    const db=await openBillingDB();
+    if(db){
+      await new Promise((resolve,reject)=>{
+        const tx=db.transaction(STORE,'readwrite');
+        tx.objectStore(STORE).add(data);
+        tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
+      });
+    }else{
+      const arr=JSON.parse(localStorage.getItem('devDistributorsInvoiceHistory')||'[]');
+      data.id=Date.now();arr.unshift(data);localStorage.setItem('devDistributorsInvoiceHistory',JSON.stringify(arr));
+    }
+    setAutoSaveStatus('✓ Invoice saved to this device database');
+    alert('Invoice saved to history on this device.');
+  }catch(e){alert('Could not save invoice. Please check device storage.');}
+}
+async function getInvoiceHistory(){
+  const db=await openBillingDB();
+  if(db){
+    return await new Promise((resolve,reject)=>{
+      const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).getAll();
+      req.onsuccess=()=>resolve(req.result.reverse());req.onerror=()=>reject(req.error);
+    });
+  }
+  return JSON.parse(localStorage.getItem('devDistributorsInvoiceHistory')||'[]');
+}
+async function showInvoiceHistory(){
+  const panel=document.getElementById('historyPanel'), list=document.getElementById('historyList');
+  panel.hidden=!panel.hidden;
+  if(panel.hidden)return;
+  try{
+    const items=await getInvoiceHistory();
+    if(!items.length){list.textContent='No saved invoices yet. Use “Save Invoice to History” after preparing an invoice.';return;}
+    list.innerHTML=items.map((x,i)=>`<div style="border:1px solid #cbd5e1;border-radius:6px;padding:10px;margin:8px 0">
+      <strong>${esc(x.invoiceNo||'Invoice')}</strong> — ${esc(x.customerName||'Customer')} — ${esc(x.grandTotal||'')}
+      <div class="muted">${esc(x.invoiceDate||'')} · ${esc(x.savedAt?new Date(x.savedAt).toLocaleString():'')}</div>
+      <button type="button" onclick="loadInvoiceFromHistory(${Number(x.id||i)})">Load Invoice</button>
+    </div>`).join('');
+  }catch(e){list.textContent='Unable to read saved invoices on this device.';}
+}
+async function loadInvoiceFromHistory(id){
+  const items=await getInvoiceHistory();
+  const item=items.find((x,i)=>Number(x.id||i)===Number(id));
+  if(!item)return;
+  applyData(item);autoSaveDraft();
+  setAutoSaveStatus('✓ Saved invoice loaded');
+  document.getElementById('historyPanel').hidden=true;
+}
+
+
+const DEALER_PERMISSION_KEY='devDistributorsDealerPermissionPin';
+let dealerPermissionGranted=false;
+function manageDealerPermission(){
+  let stored=localStorage.getItem(DEALER_PERMISSION_KEY);
+  if(!stored){
+    const newPin=prompt('Create an Admin PIN to control Dealer Account add/edit permission (4+ characters):');
+    if(newPin===null)return;
+    if(String(newPin).trim().length<4){alert('PIN must be at least 4 characters.');return;}
+    localStorage.setItem(DEALER_PERMISSION_KEY,String(newPin));
+    dealerPermissionGranted=true;
+    setDealerPermissionStatus('Permission granted for this session. Admin PIN created.');
+    return;
+  }
+  const pin=prompt('Enter Admin PIN to enable Dealer Account add/edit permission:');
+  if(pin===null)return;
+  if(pin===stored){
+    dealerPermissionGranted=true;
+    setDealerPermissionStatus('Permission granted for this session.');
+  }else{
+    dealerPermissionGranted=false;
+    setDealerPermissionStatus('Incorrect PIN. Add/edit remains locked.');
+    alert('Incorrect Admin PIN.');
+  }
+}
+function setDealerPermissionStatus(message){
+  const el=document.getElementById('dealerPermissionStatus');
+  if(el)el.textContent=message;
+}
+function lockDealerEditing(){
+  dealerPermissionGranted=false;
+  setDealerPermissionStatus('Dealer add/edit is locked. Enter Admin PIN to continue.');
+}
+
+const DEALER_STORE_KEY='devDistributorsDealers';
+let activeDealerId='';
+function getDealers(){
+  try { const d=JSON.parse(localStorage.getItem(DEALER_STORE_KEY)||'[]'); return Array.isArray(d)?d:[]; }
+  catch(e){ return []; }
+}
+function saveDealers(list){ localStorage.setItem(DEALER_STORE_KEY,JSON.stringify(list)); }
+function getDealerById(id){ return getDealers().find(d=>String(d.id)===String(id)); }
+function dealerVal(id){ return document.getElementById(id).value.trim(); }
+function setDealerStatus(message){
+  const el=document.getElementById('dealerStatus'); if(el)el.textContent=message;
+}
+function refreshDealerList(selectId=''){
+  const select=document.getElementById('dealerSelect');
+  const dealers=getDealers();
+  select.innerHTML='<option value="">-- Select dealer --</option>'+dealers.map(d=>
+    `<option value="${esc(String(d.id))}">${esc(d.name||'Unnamed dealer')} — ${esc(d.mobile||'')}</option>`
+  ).join('');
+  if(selectId) select.value=String(selectId);
+}
+function clearDealerForm(){
+  activeDealerId='';
+  ['dealerName','dealerMobile','dealerAddress','dealerGstin'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('dealerOpeningBalance').value='0';
+  document.getElementById('dealerPendingBalance').value='0';
+  document.getElementById('dealerSelect').value='';
+  document.getElementById('dealerSearchResults').innerHTML='';
+  setDealerStatus('Ready to add a new dealer.');
+}
+function dealerFormData(){
+  return {
+    name:dealerVal('dealerName'),
+    mobile:dealerVal('dealerMobile'),
+    address:dealerVal('dealerAddress'),
+    gstin:dealerVal('dealerGstin'),
+    openingBalance:Number(dealerVal('dealerOpeningBalance'))||0,
+    pendingBalance:Number(dealerVal('dealerPendingBalance'))||0
+  };
+}
+function saveDealerDetails(){
+  if(!dealerPermissionGranted){setDealerStatus('Permission required. Click Dealer Account Permission and enter the Admin PIN.');alert('Dealer add/edit permission is locked.');return;}
+  const d=dealerFormData();
+  if(!d.name){setDealerStatus('Please enter Dealer Name.');document.getElementById('dealerName').focus();return;}
+  const dealers=getDealers();
+  const existingId=activeDealerId || dealerVal('dealerSelect');
+  const idx=dealers.findIndex(x=>String(x.id)===String(existingId));
+  if(idx>=0){
+    dealers[idx]={...dealers[idx],...d,updatedAt:new Date().toISOString()};
+    activeDealerId=dealers[idx].id;
+    saveDealers(dealers);refreshDealerList(activeDealerId);
+    setDealerStatus('✓ Dealer details updated successfully.');
+  }else{
+    const dealer={...d,id:'dealer-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),createdAt:new Date().toISOString()};
+    dealers.unshift(dealer);activeDealerId=dealer.id;
+    saveDealers(dealers);refreshDealerList(activeDealerId);
+    setDealerStatus('✓ Dealer details saved successfully.');
+  }
+  searchDealers();
+}
+function editDealerDetails(){
+  if(!dealerPermissionGranted){setDealerStatus('Permission required. Click Dealer Account Permission and enter the Admin PIN.');alert('Dealer add/edit permission is locked.');return;}
+  const id=dealerVal('dealerSelect')||activeDealerId;
+  const d=getDealerById(id);
+  if(!d){setDealerStatus('Select a saved dealer first, then click Edit Dealer Details.');return;}
+  activeDealerId=d.id;
+  document.getElementById('dealerName').value=d.name||'';
+  document.getElementById('dealerMobile').value=d.mobile||'';
+  document.getElementById('dealerAddress').value=d.address||'';
+  document.getElementById('dealerGstin').value=d.gstin||'';
+  document.getElementById('dealerOpeningBalance').value=Number(d.openingBalance)||0;
+  document.getElementById('dealerPendingBalance').value=Number(d.pendingBalance)||0;
+  refreshDealerList(d.id);
+  setDealerStatus('Dealer details loaded. Make changes and click Save Dealer Details.');
+}
+function selectDealerFromList(){
+  const id=dealerVal('dealerSelect');
+  if(!id){activeDealerId='';return;}
+  const d=getDealerById(id); if(!d)return;
+  activeDealerId=d.id;
+  document.getElementById('dealerName').value=d.name||'';
+  document.getElementById('dealerMobile').value=d.mobile||'';
+  document.getElementById('dealerAddress').value=d.address||'';
+  document.getElementById('dealerGstin').value=d.gstin||'';
+  document.getElementById('dealerOpeningBalance').value=Number(d.openingBalance)||0;
+  document.getElementById('dealerPendingBalance').value=Number(d.pendingBalance)||0;
+  setDealerStatus('Selected dealer: '+d.name);
+}
+function searchDealers(){
+  const q=dealerVal('dealerSearch').toLowerCase();
+  const matches=getDealers().filter(d=>[d.name,d.mobile,d.address,d.gstin].some(v=>String(v||'').toLowerCase().includes(q)));
+  const el=document.getElementById('dealerSearchResults');
+  if(!matches.length){el.innerHTML=q?'<p class="muted">No matching dealers found.</p>':'';return;}
+  el.innerHTML=matches.slice(0,30).map(d=>`<div class="dealer-card">
+    <strong>${esc(d.name||'Unnamed dealer')}</strong>
+    <div class="muted">${esc(d.mobile||'')} · GSTIN: ${esc(d.gstin||'—')}</div>
+    <div>${esc(d.address||'')}</div>
+    <div>Opening Balance: ${money(d.openingBalance)} · Credit / Pending: ${money(d.pendingBalance)}</div>
+    <button type="button" class="secondary" onclick="chooseDealer('${esc(String(d.id))}')">Select / Edit</button>
+    <button type="button" class="secondary" onclick="showDealerBillingHistory('${esc(String(d.id))}')">View Billing History</button>
+  </div>`).join('');
+}
+function chooseDealer(id){
+  refreshDealerList(id);
+  document.getElementById('dealerSelect').value=id;
+  selectDealerFromList();
+  editDealerDetails();
+}
+async function showDealerBillingHistory(id=''){
+  const dealerId=id||dealerVal('dealerSelect')||activeDealerId;
+  const d=getDealerById(dealerId);
+  const box=document.getElementById('dealerBillingHistory');
+  const list=document.getElementById('dealerHistoryList');
+  if(!d){setDealerStatus('Select a dealer to view dealer-wise billing history.');return;}
+  box.hidden=false;
+  document.getElementById('dealerHistoryTitle').textContent='Billing History — '+d.name;
+  list.textContent='Loading saved invoices...';
+  try{
+    const invoices=await getInvoiceHistory();
+    const matches=invoices.filter(x=>String(x.dealerId||'')===String(d.id) ||
+      (!x.dealerId && String(x.customerName||'').trim().toLowerCase()===String(d.name||'').trim().toLowerCase()));
+    if(!matches.length){list.innerHTML='<p class="muted">No saved invoices linked to this dealer yet. Select this dealer before saving a new invoice.</p>';return;}
+    list.innerHTML=matches.map(x=>`<div class="dealer-card">
+      <strong>${esc(x.invoiceNo||'Invoice')}</strong> — ${esc(x.customerName||'Customer')}
+      <div class="muted">Date: ${esc(x.invoiceDate||'—')} · Saved: ${esc(x.savedAt?new Date(x.savedAt).toLocaleString():'—')}</div>
+      <div>Grand Total: ${esc(x.grandTotal||'—')}</div>
+      <button type="button" class="secondary" onclick="loadInvoiceFromHistory(${Number(x.id||0)})">Load Invoice</button>
+    </div>`).join('');
+  }catch(e){list.textContent='Unable to read saved invoices on this device.';}
+}
+
+const PRINT_OPTION_TARGETS = {
+  invoiceNumber: ['outInvoiceNoLine'],
+  invoiceDate: ['outInvoiceDateLine'],
+  previousBill: ['outPreviousBalanceLine'],
+  salesman: ['outSalesManLine'],
+  vehicle: ['outVehicleLine'],
+  eway: ['outEwayLine'],
+  dispatch: ['outBuyerOrderLine','outPaymentTermsLine','outDestinationLine'],
+  company: ['outBizName'],
+  gstNumber: ['outGstinLine'],
+  companyAddress: ['outBizAddress'],
+  bank: ['outBankTitle','outBankDetails'],
+  dealer: ['outDealerBlock'],
+  customer: ['outCustomerBlock'],
+  products: ['outProductsBlock'],
+  gst: ['.gst-column','.gst-total-line'],
+  totals: ['outTotalsBlock','outAmountWords','outBillAmountLine','outNetBalanceLine','outPdcNote'],
+  terms: ['outTermsBlock'],
+  signature: ['outSignatureBlock']
+};
+let printStatesBefore = [];
+function setAllPrintOptions(checked){
+  document.querySelectorAll('[data-print-option]').forEach(cb=>cb.checked=checked);
+}
+function applyPrintChoices(){
+  // Remember current state so the normal preview is restored after printing.
+  printStatesBefore = [];
+  Object.entries(PRINT_OPTION_TARGETS).forEach(([key,selectors])=>{
+    const checkboxes=[...document.querySelectorAll(`[data-print-option="${key}"]`)];
+    // Duplicated legacy Dealer/Customer controls stay in sync and either can enable the section.
+    const shouldShow=checkboxes.some(cb=>cb.checked);
+    checkboxes.forEach(cb=>cb.checked=shouldShow);
+    selectors.forEach(selector=>{
+      document.querySelectorAll('#invoice '+selector).forEach(el=>{
+        printStatesBefore.push([el,el.classList.contains('print-hidden')]);
+        el.classList.toggle('print-hidden',!shouldShow);
+      });
+    });
+  });
+  // Hide parent containers when every relevant child section is unchecked.
+  const groupRules = [
+    ['#outCompanyBlock', ['company','gstNumber','companyAddress']],
+    ['#outDispatchBlock', ['eway','vehicle','dispatch','salesman']],
+    ['#outBalanceBlock', ['previousBill','totals','bank']],
+  ];
+  groupRules.forEach(([selector,keys])=>{
+    const el=document.querySelector(selector); if(!el)return;
+    printStatesBefore.push([el,el.classList.contains('print-hidden')]);
+    const visible=keys.some(key=>[...document.querySelectorAll(`[data-print-option="${key}"]`)].some(cb=>cb.checked));
+    el.classList.toggle('print-hidden',!visible);
+  });
+}
+function restorePrintChoices(){
+  printStatesBefore.forEach(([el,wasHidden])=>el.classList.toggle('print-hidden',wasHidden));
+  printStatesBefore=[];
+}
+window.addEventListener('beforeprint',applyPrintChoices);
+window.addEventListener('afterprint',restorePrintChoices);
+document.querySelectorAll('[data-print-option]').forEach(cb=>cb.addEventListener('change',()=>{
+  const key=cb.dataset.printOption;
+  document.querySelectorAll(`[data-print-option="${key}"]`).forEach(other=>other.checked=cb.checked);
+}));
+function loadDetails(){
+  try{
+    const raw=localStorage.getItem('devDistributorsDraft')||localStorage.getItem('gstBillingDemo');
+    if(raw){applyData(JSON.parse(raw));return;}
+  }catch(e){}
+}
+document.addEventListener('input',e=>{
+  if(e.target.closest('.panel')){updateInvoice();autoSaveDraft();}
+});
+document.addEventListener('change',e=>{
+  if(e.target.closest('.panel')){updateInvoice();autoSaveDraft();}
+});
+const originalAddRow=addRow;
+addRow=function(...args){originalAddRow(...args);};
+document.getElementById('invoiceDate').value=new Date().toISOString().slice(0,10);
+loadDetails(); refreshDealerList(); if(!document.querySelector('#entryRows tr'))addRow(); updateInvoice();
+openBillingDB().then(()=>setAutoSaveStatus('✓ Auto-save enabled — data stays on this device')).catch(()=>setAutoSaveStatus('Auto-save enabled using browser storage'));
+
+// Logo is stored locally as a data URL, so it remains available when the app is reopened.
+const LOGO_KEY='devDistributorsBusinessLogo';
+function applyLogo(dataUrl){
+  const img=document.getElementById('invoiceLogo');
+  if(dataUrl){img.src=dataUrl;img.style.display='block';document.getElementById('logoStatus').textContent='Logo ready for invoice';}
+  else {img.removeAttribute('src');img.style.display='none';document.getElementById('logoStatus').textContent='No logo selected';}
+}
+document.getElementById('logoUpload').addEventListener('change',e=>{
+  const file=e.target.files && e.target.files[0]; if(!file)return;
+  if(file.size>2*1024*1024){alert('Please choose a logo smaller than 2 MB.');e.target.value='';return;}
+  const reader=new FileReader(); reader.onload=()=>{try{localStorage.setItem(LOGO_KEY,String(reader.result));applyLogo(String(reader.result));}catch(err){alert('Logo could not be saved. Try a smaller image.');}}; reader.readAsDataURL(file);
+});
+document.getElementById('removeLogoBtn').addEventListener('click',()=>{localStorage.removeItem(LOGO_KEY);document.getElementById('logoUpload').value='';applyLogo('');});
+try{applyLogo(localStorage.getItem(LOGO_KEY)||'');}catch(e){}
+// Optional cloud database sync: when the app is hosted with the included backend,
+// saved invoices are mirrored to SQLite. Local device saving continues to work offline.
+async function mirrorInvoiceToServer(data){
+  try{const r=await fetch('/api/invoices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(r.ok)setAutoSaveStatus('✓ Saved on this device and synced to server database');}catch(e){/* offline or opened as a standalone HTML file */}
+}
+const localSaveInvoiceToHistory=saveInvoiceToHistory;
+saveInvoiceToHistory=async function(){
+  await localSaveInvoiceToHistory();
+  try{const data=collectData();data.invoiceNo=data.invoiceNo||('INV-'+Date.now());data.grandTotal=document.getElementById('outGrand').textContent;data.savedAt=new Date().toISOString();data.dealerId=val('dealerSelect');await mirrorInvoiceToServer(data);}catch(e){}
+};
+// Installable PWA service worker. It is active only when served over HTTPS/localhost.
+if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost')){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
+}
+
+</script>
+</body>
+</html>
